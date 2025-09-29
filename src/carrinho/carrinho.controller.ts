@@ -1,45 +1,119 @@
 import { Request, Response } from "express";
 
 interface ItemCarrinho {
-    produtoId: string;
-    quantidade: number;
-    precoUnitario: number;
-    nome: string;
+  produtoId: string;
+  quantidade: number;
+  precoUnitario: number;
+  nome: string;
 }
 
 interface Carrinho {
-    usuarioId: string;
-    itens: ItemCarrinho[];
-    dataAtualizacao: Date;
-    total: number;
+  usuarioId: string;
+  itens: ItemCarrinho[];
+  dataAtualizacao: Date;
+  total: number;
 }
+
+// Simulação de banco de dados
+const produtos = [
+  { _id: "1", nome: "Produto A", preco: 10 },
+  { _id: "2", nome: "Produto B", preco: 20 },
+];
+
+const carrinhos: Carrinho[] = [];
+
 class CarrinhoController {
-    //adicionarItem
-    async adicionarItem(req:Request, res:Response) {
-        const { usuarioId, produtoId, quantidade } = req.body;
-    } 
-        //Buscar o produto no banco de dados
-        //Pegar o preço do produto
-        //Pegar o nome do produto
+
+  async adicionarItem(req: Request, res: Response) {
+    const { usuarioId, produtoId, quantidade } = req.body;
+    if (!usuarioId || !produtoId || !quantidade) {
+      return res.status(400).json({ error: "Dados incompletos." });
+    }
+
+    const produto = produtos.find(p => p._id === produtoId);
+    if (!produto) return res.status(404).json({ error: "Produto não encontrado." });
+
+    let carrinho = carrinhos.find(c => c.usuarioId === usuarioId);
+
+    if (!carrinho) {
+      carrinho = { usuarioId, itens: [], dataAtualizacao: new Date(), total: 0 };
+      carrinhos.push(carrinho);
+    }
+
+    const itemExistente = carrinho.itens.find(item => item.produtoId === produtoId);
+    if (itemExistente) {
+      itemExistente.quantidade += quantidade;
+    } else {
+      carrinho.itens.push({
+        produtoId,
+        quantidade,
+        precoUnitario: produto.preco,
+        nome: produto.nome,
+      });
+    }
+
+    carrinho.total = carrinho.itens.reduce((sum, item) => sum + item.quantidade * item.precoUnitario, 0);
+    carrinho.dataAtualizacao = new Date();
+
+    return res.json({ message: "Item adicionado com sucesso!", carrinho });
+  }
+
+  
+  async removerItem(req: Request, res: Response) {
+    const { usuarioId, produtoId } = req.params;
+    if (!usuarioId || !produtoId) return res.status(400).json({ error: "Informe usuário e produto." });
+
+    const carrinho = carrinhos.find(c => c.usuarioId === usuarioId);
+    if (!carrinho) return res.status(404).json({ error: "Carrinho não encontrado." });
+
+    carrinho.itens = carrinho.itens.filter(item => item.produtoId !== produtoId);
+    carrinho.total = carrinho.itens.reduce((sum, item) => sum + item.quantidade * item.precoUnitario, 0);
+    carrinho.dataAtualizacao = new Date();
+
+    return res.json({ message: "Item removido do carrinho.", carrinho });
+  }
 
 
-        // Verificar se um carrinho com o usuário já existe
+  async atualizarQuantidade(req: Request, res: Response) {
+    const { usuarioId, produtoId, quantidade } = req.body;
+    if (!usuarioId || !produtoId || quantidade < 1) {
+      return res.status(400).json({ error: "Informe usuário, produto e quantidade válida." });
+    }
 
-        // Se não existir deve criar um novo carrinho
+    const carrinho = carrinhos.find(c => c.usuarioId === usuarioId);
+    if (!carrinho) return res.status(404).json({ error: "Carrinho não encontrado." });
 
-        // Se existir, deve adicionar o item ao carrinho existente
+    const item = carrinho.itens.find(i => i.produtoId === produtoId);
+    if (!item) return res.status(404).json({ error: "Produto não encontrado no carrinho." });
 
-        // Calcular o total do carrinho
+    item.quantidade = quantidade;
+    carrinho.total = carrinho.itens.reduce((sum, i) => sum + i.quantidade * i.precoUnitario, 0);
+    carrinho.dataAtualizacao = new Date();
 
-        // Atualizar a data de atualização do carrinho
+    return res.json({ message: "Quantidade atualizada.", carrinho });
+  }
+
+  async listar(req: Request, res: Response) {
+    const { usuarioId } = req.params;
+    if (!usuarioId) return res.status(400).json({ error: "Informe o usuário." });
+
+    const carrinho = carrinhos.find(c => c.usuarioId === usuarioId);
+    if (!carrinho) return res.status(404).json({ error: "Carrinho não encontrado." });
+
+    return res.json(carrinho);
+  }
 
 
+  async remover(req: Request, res: Response) {
+    const { usuarioId } = req.params;
+    if (!usuarioId) return res.status(400).json({ error: "Informe o usuário." });
 
+    const index = carrinhos.findIndex(c => c.usuarioId === usuarioId);
+    if (index === -1) return res.status(404).json({ error: "Carrinho não encontrado." });
 
-    //removerItem
-    //atualizarQuantidade
-    //listar
-    //remover                -> Remover o carrinho todo
-
+    carrinhos.splice(index, 1);
+    return res.json({ message: "Carrinho removido com sucesso." });
+  }
 }
+
 export default new CarrinhoController();

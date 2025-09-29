@@ -6,8 +6,12 @@ import produtosController from './produtos/produtos.controller.js'
 const rotas = Router()
 
 // Rotas do Carrinho
-//rotas.get('/carrinho',carrinhoController.listar)
-//rotas.post('/carrinho',carrinhoController.adicionar)
+rotas.get('/carrinho/:usuarioId', carrinhoController.listar)
+rotas.post('/carrinho', carrinhoController.adicionarItem)
+rotas.put('/carrinho', carrinhoController.atualizarQuantidade)
+rotas.delete('/carrinho/:usuarioId/item/:produtoId', carrinhoController.removerItem)
+rotas.delete('/carrinho/:usuarioId', carrinhoController.remover)
+
 
 // Rotas dos produtos
 rotas.get('/produtos',produtosController.listar)
