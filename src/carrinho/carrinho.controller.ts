@@ -1,4 +1,6 @@
 import { Request, Response } from "express";
+import { ObjectId } from "mongodb";
+import { db } from "../database/banco-mongo.js";
 
 interface ItemCarrinho {
   produtoId: string;
@@ -14,32 +16,35 @@ interface Carrinho {
   total: number;
 }
 
-// Simulação de banco de dados
-const produtos = [
-  { _id: "1", nome: "Produto A", preco: 10 },
-  { _id: "2", nome: "Produto B", preco: 20 },
-];
-
 const carrinhos: Carrinho[] = [];
 
 class CarrinhoController {
-
   async adicionarItem(req: Request, res: Response) {
     const { usuarioId, produtoId, quantidade } = req.body;
-    if (!usuarioId || !produtoId || !quantidade) {
-      return res.status(400).json({ error: "Dados incompletos." });
+
+    if (!usuarioId || !produtoId || !quantidade || quantidade < 1) {
+      return res.status(400).json({ error: "Dados incompletos ou inválidos." });
     }
 
-    const produto = produtos.find(p => p._id === produtoId);
-    if (!produto) return res.status(404).json({ error: "Produto não encontrado." });
+    // Buscar o produto no banco de dados
+    const produto = await db.collection("produtos").findOne({ _id: new ObjectId(produtoId) });
+    if (!produto) {
+      return res.status(404).json({ error: "Produto não encontrado." });
+    }
 
+    const precoUnitario = produto.preco;
+    const nome = produto.nome;
+
+    // Verificar se um carrinho com o usuário já existe
     let carrinho = carrinhos.find(c => c.usuarioId === usuarioId);
 
+    // Se não existir, criar novo carrinho
     if (!carrinho) {
       carrinho = { usuarioId, itens: [], dataAtualizacao: new Date(), total: 0 };
       carrinhos.push(carrinho);
     }
 
+    // Se existir, adicionar ou atualizar item
     const itemExistente = carrinho.itens.find(item => item.produtoId === produtoId);
     if (itemExistente) {
       itemExistente.quantidade += quantidade;
@@ -47,18 +52,18 @@ class CarrinhoController {
       carrinho.itens.push({
         produtoId,
         quantidade,
-        precoUnitario: produto.preco,
-        nome: produto.nome,
+        precoUnitario,
+        nome,
       });
     }
 
+    // Calcular total do carrinho
     carrinho.total = carrinho.itens.reduce((sum, item) => sum + item.quantidade * item.precoUnitario, 0);
     carrinho.dataAtualizacao = new Date();
 
     return res.json({ message: "Item adicionado com sucesso!", carrinho });
   }
 
-  
   async removerItem(req: Request, res: Response) {
     const { usuarioId, produtoId } = req.params;
     if (!usuarioId || !produtoId) return res.status(400).json({ error: "Informe usuário e produto." });
@@ -72,7 +77,6 @@ class CarrinhoController {
 
     return res.json({ message: "Item removido do carrinho.", carrinho });
   }
-
 
   async atualizarQuantidade(req: Request, res: Response) {
     const { usuarioId, produtoId, quantidade } = req.body;
@@ -102,7 +106,6 @@ class CarrinhoController {
 
     return res.json(carrinho);
   }
-
 
   async remover(req: Request, res: Response) {
     const { usuarioId } = req.params;
