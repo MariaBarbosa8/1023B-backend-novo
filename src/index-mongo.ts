@@ -1,9 +1,16 @@
-import express from 'express'
+import express, { NextFunction } from 'express'
 import 'dotenv/config'
 import rotas from './rotas.js'
 const app = express()
 //Esse middleware faz com que o 
 // express faça o parse do body da requisição para json 
+
+//meu primeiro middleware
+function middleware(req:Request, res:Response, next:NextFunction){
+
+}
+
+
 app.use(express.json())
 
 // Usando as rotas definidas em rotas.ts

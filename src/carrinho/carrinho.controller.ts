@@ -27,13 +27,13 @@ class CarrinhoController {
     }
 
     // Buscar o produto no banco de dados
-    const produto = await db.collection("produtos").findOne({ _id: new ObjectId(produtoId) });
+    const produto = await db.collection("produtos").findOne({ _id: new ObjectId.createFromHexString(produtoId) });
     if (!produto) {
       return res.status(404).json({ error: "Produto não encontrado." });
     }
-
     const precoUnitario = produto.preco;
     const nome = produto.nome;
+  
 
     // Verificar se um carrinho com o usuário já existe
     let carrinho = carrinhos.find(c => c.usuarioId === usuarioId);

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'
 import { db } from '../database/banco-mongo.js'
+import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 class UsuariosController {
     async adicionar(req: Request, res: Response) {
@@ -22,6 +23,13 @@ class UsuariosController {
         const usuariosSemSenha = usuarios.map(({ senha, ...resto }) => resto)
         res.status(200).json(usuariosSemSenha)
     }
-}
+     async login(req: Request, res: Response) {
+        const { email, senha } = req.body
+if (!email || !senha)
+            return res.status(400).json({ error: "Email e senha são obrigatórios" })
+        const usuario = await db.collection('usuarios').findOne({ email })
 
+        res.status(401).send("Não autorizado")
+    }
+}
 export default new UsuariosController()
